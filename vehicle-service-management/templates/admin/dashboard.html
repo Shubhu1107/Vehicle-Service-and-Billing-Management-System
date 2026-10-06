@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | {{ app_name }}{% endblock %}
+{% block page_title %}Workshop Command Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Header & Quick Actions -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Workshop Operations Overview</h2>
+      <p class="text-muted small mb-0">Real-time status of service bays, mechanic allocations, bookings, and financial billing.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0">
+      <a href="{{ url_for('admin.bookings') }}" class="btn btn-primary btn-sm shadow-sm">
+        <i class="bi bi-calendar-check me-1"></i> Manage Bookings
+      </a>
+      <a href="{{ url_for('admin.customers') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-person-plus me-1"></i> Add Customer
+      </a>
+      <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-bar-chart-line me-1"></i> Reports
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Metric Cards Grid (7 Cards + Pending Dues) -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Total Customers</p>
+            <h3 class="stat-value">{{ stats.total_customers }}</h3>
+          </div>
+          <div class="stat-icon primary">
+            <i class="bi bi-people-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Total Vehicles</p>
+            <h3 class="stat-value">{{ stats.total_vehicles }}</h3>
+          </div>
+          <div class="stat-icon info">
+            <i class="bi bi-car-front-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Pending Bookings</p>
+            <h3 class="stat-value text-warning">{{ stats.pending_bookings }}</h3>
+          </div>
+          <div class="stat-icon warning">
+            <i class="bi bi-hourglass-top"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Active Services</p>
+            <h3 class="stat-value text-primary">{{ stats.active_services }}</h3>
+          </div>
+          <div class="stat-icon purple">
+            <i class="bi bi-gear-wide-connected"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Completed Services</p>
+            <h3 class="stat-value text-success">{{ stats.completed_services }}</h3>
+          </div>
+          <div class="stat-icon success">
+            <i class="bi bi-check2-circle"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Total Mechanics</p>
+            <h3 class="stat-value">{{ stats.total_mechanics }}</h3>
+          </div>
+          <div class="stat-icon primary">
+            <i class="bi bi-tools"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Paid Revenue</p>
+            <h3 class="stat-value text-success">{{ stats.total_revenue|currency }}</h3>
+          </div>
+          <div class="stat-icon success">
+            <i class="bi bi-cash-stack"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Pending Dues</p>
+            <h3 class="stat-value text-danger">{{ stats.pending_revenue|currency }}</h3>
+          </div>
+          <div class="stat-icon danger">
+            <i class="bi bi-receipt"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle Row: Status Overview Pills & Mechanics Workload -->
+  <div class="row g-4 mb-4">
+    <!-- Status Breakdown Cards -->
+    <div class="col-lg-8">
+      <div class="dashboard-card h-100 mb-0">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-diagram-3 text-primary"></i>
+            <span>Service Pipeline Distribution</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-2 text-center">
+            <div class="col-4 col-md">
+              <div class="p-2 border rounded-3 bg-light">
+                <span class="d-block small text-muted">Pending</span>
+                <strong class="fs-5 text-warning">{{ status_map.get('Pending', 0) }}</strong>
+              </div>
+            </div>
+            <div class="col-4 col-md">
+              <div class="p-2 border rounded-3 bg-light">
+                <span class="d-block small text-muted">Approved</span>
+                <strong class="fs-5 text-info">{{ status_map.get('Approved', 0) }}</strong>
+              </div>
+            </div>
+            <div class="col-4 col-md">
+              <div class="p-2 border rounded-3 bg-light">
+                <span class="d-block small text-muted">Assigned</span>
+                <strong class="fs-5 text-primary">{{ status_map.get('Mechanic Assigned', 0) }}</strong>
+              </div>
+            </div>
+            <div class="col-4 col-md">
+              <div class="p-2 border rounded-3 bg-light">
+                <span class="d-block small text-muted">In Service</span>
+                <strong class="fs-5 text-primary">{{ status_map.get('In Service', 0) }}</strong>
+              </div>
+            </div>
+            <div class="col-4 col-md">
+              <div class="p-2 border rounded-3 bg-light">
+                <span class="d-block small text-muted">Waiting Parts</span>
+                <strong class="fs-5 text-warning">{{ status_map.get('Waiting for Parts', 0) }}</strong>
+              </div>
+            </div>
+            <div class="col-4 col-md">
+              <div class="p-2 border rounded-3 bg-light">
+                <span class="d-block small text-muted">Completed</span>
+                <strong class="fs-5 text-success">{{ status_map.get('Completed', 0) }}</strong>
+              </div>
+            </div>
+            <div class="col-4 col-md">
+              <div class="p-2 border rounded-3 bg-light">
+                <span class="d-block small text-muted">Delivered</span>
+                <strong class="fs-5 text-success">{{ status_map.get('Delivered', 0) }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mechanics Status Overview -->
+    <div class="col-lg-4">
+      <div class="dashboard-card h-100 mb-0">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-tools text-primary"></i>
+            <span>Technicians Roster</span>
+          </div>
+          <a href="{{ url_for('admin.mechanics') }}" class="btn btn-sm btn-link text-decoration-none">Manage &rarr;</a>
+        </div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            {% for m in mechanics_list %}
+              <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
+                <div>
+                  <div class="fw-bold small text-dark">{{ m.name }}</div>
+                  <span class="text-muted" style="font-size: 0.72rem;">{{ m.specialization|truncate(30) }}</span>
+                </div>
+                <div class="text-end">
+                  <span class="badge-status {{ m.status|status_badge }} mb-1" style="font-size: 0.65rem;">{{ m.status }}</span>
+                  <div class="text-muted small" style="font-size: 0.72rem;">{{ m.active_jobs }} active jobs</div>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Bookings Table -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-calendar-check text-primary"></i>
+        <span>Recent Service Bookings</span>
+      </div>
+      <a href="{{ url_for('admin.bookings') }}" class="btn btn-sm btn-link text-decoration-none">View All Master Bookings &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+      {% if recent_bookings %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Customer</th>
+                <th>Vehicle</th>
+                <th>Service</th>
+                <th>Scheduled Date</th>
+                <th>Status</th>
+                <th>Mechanic</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in recent_bookings %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.booking_number }}</td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ b.customer_name }}</div>
+                  </td>
+                  <td>
+                    <div class="fw-medium text-dark">{{ b.brand }} {{ b.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ b.registration_number }}</span>
+                  </td>
+                  <td>{{ b.service_name }}</td>
+                  <td>
+                    <div>{{ b.preferred_date|format_date }}</div>
+                    <span class="text-muted small">{{ b.preferred_time }}</span>
+                  </td>
+                  <td>
+                    <span class="badge-status {{ b.status|status_badge }}">{{ b.status }}</span>
+                  </td>
+                  <td>
+                    {% if b.mechanic_name %}
+                      <span class="text-dark small"><i class="bi bi-person me-1"></i>{{ b.mechanic_name }}</span>
+                    {% else %}
+                      <span class="badge bg-warning-subtle text-warning-emphasis small">Unassigned</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('admin.booking_detail', booking_id=b.id) }}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                      <i class="bi bi-pencil-square me-1"></i> Review &amp; Assign
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
+          <h5 class="empty-state-title">No bookings in system</h5>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

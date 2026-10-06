@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}My Bookings | {{ app_name }}{% endblock %}
+{% block page_title %}Service Booking History &amp; Status{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">My Bookings</h2>
+      <p class="text-muted small mb-0">Track live progress of all service appointments and workshop repair orders.</p>
+    </div>
+    <a href="{{ url_for('customer.book_service') }}" class="btn btn-primary btn-sm shadow-sm">
+      <i class="bi bi-calendar-plus me-1"></i> Book New Service
+    </a>
+  </div>
+
+  <!-- Status Filter Pills -->
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <a href="{{ url_for('customer.bookings', status='all') }}" class="btn btn-sm {% if current_status == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      All Bookings
+    </a>
+    <a href="{{ url_for('customer.bookings', status='Pending') }}" class="btn btn-sm {% if current_status == 'Pending' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      Pending
+    </a>
+    <a href="{{ url_for('customer.bookings', status='Approved') }}" class="btn btn-sm {% if current_status == 'Approved' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      Approved
+    </a>
+    <a href="{{ url_for('customer.bookings', status='In Service') }}" class="btn btn-sm {% if current_status == 'In Service' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      In Service
+    </a>
+    <a href="{{ url_for('customer.bookings', status='Waiting for Parts') }}" class="btn btn-sm {% if current_status == 'Waiting for Parts' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      Waiting for Parts
+    </a>
+    <a href="{{ url_for('customer.bookings', status='Completed') }}" class="btn btn-sm {% if current_status == 'Completed' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      Completed
+    </a>
+    <a href="{{ url_for('customer.bookings', status='Delivered') }}" class="btn btn-sm {% if current_status == 'Delivered' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      Delivered
+    </a>
+  </div>
+
+  <!-- Bookings List Table -->
+  <div class="dashboard-card">
+    <div class="card-body p-0">
+      {% if bookings %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Vehicle</th>
+                <th>Package</th>
+                <th>Appointment</th>
+                <th>Mechanic</th>
+                <th>Status</th>
+                <th>Invoice</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in bookings %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.booking_number }}</td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ b.brand }} {{ b.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ b.registration_number }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.service_name }}</div>
+                    <span class="text-muted small">Est: {{ b.base_price|currency }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.preferred_date|format_date }}</div>
+                    <span class="text-muted small">{{ b.preferred_time }}</span>
+                  </td>
+                  <td>
+                    {% if b.mechanic_name %}
+                      <span class="text-dark fw-medium"><i class="bi bi-person-fill text-muted me-1"></i>{{ b.mechanic_name }}</span>
+                    {% else %}
+                      <span class="text-muted fst-italic">Pending Assign</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge-status {{ b.status|status_badge }}">{{ b.status }}</span>
+                  </td>
+                  <td>
+                    {% if b.invoice_number %}
+                      <div>
+                        <a href="{{ url_for('customer.invoice', bill_id=b.bill_id) }}" class="fw-bold text-decoration-none">
+                          {{ b.invoice_number }}
+                        </a>
+                      </div>
+                      <span class="badge-status {{ b.payment_status|status_badge }}" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">
+                        {{ b.payment_status }}
+                      </span>
+                    {% else %}
+                      <span class="text-muted small">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('customer.booking_detail', booking_id=b.id) }}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                      <i class="bi bi-search me-1"></i> Details &amp; Timeline
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
+          <h5 class="empty-state-title">No bookings found</h5>
+          <p class="empty-state-desc">You do not have any service requests under this filter category.</p>
+          <a href="{{ url_for('customer.book_service') }}" class="btn btn-primary btn-sm">Book Service Now</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

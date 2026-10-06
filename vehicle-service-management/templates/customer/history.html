@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Service History | {{ app_name }}{% endblock %}
+{% block page_title %}Vehicle Service Log &amp; History{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Service History</h2>
+      <p class="text-muted small mb-0">Detailed historical record of all completed repairs, parts replaced, and maintenance invoices.</p>
+    </div>
+
+    <!-- Filter by Vehicle Dropdown -->
+    <form method="GET" action="{{ url_for('customer.history') }}" class="d-flex align-items-center gap-2 mt-3 mt-md-0">
+      <label for="vehicle_id" class="small fw-semibold text-muted text-nowrap">Filter Vehicle:</label>
+      <select name="vehicle_id" id="vehicle_id" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">All Registered Vehicles</option>
+        {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if selected_vehicle|int == v.id %}selected{% endif %}>
+            {{ v.registration_number }} - {{ v.brand }} {{ v.model }}
+          </option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-primary"></i>
+        <span>Archived Service Records ({{ history_records|length }})</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if history_records %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Vehicle</th>
+                <th>Service Done</th>
+                <th>Service Date</th>
+                <th>Technician</th>
+                <th>Complaint &amp; Work Performed</th>
+                <th>Total Billed</th>
+                <th>Invoice</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for h in history_records %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ h.booking_number }}</td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ h.brand }} {{ h.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ h.registration_number }}</span>
+                  </td>
+                  <td>
+                    <span class="fw-medium text-dark">{{ h.service_name }}</span>
+                  </td>
+                  <td>{{ h.preferred_date|format_date }}</td>
+                  <td>
+                    {% if h.mechanic_name %}
+                      <span class="text-dark small"><i class="bi bi-person me-1"></i>{{ h.mechanic_name }}</span>
+                    {% else %}
+                      <span class="text-muted small">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="max-width: 280px;">
+                    <div class="small text-muted mb-1"><strong>Issue:</strong> {{ h.complaint }}</div>
+                    {% if h.last_remark %}
+                      <div class="small text-dark"><strong>Outcome:</strong> {{ h.last_remark }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if h.grand_total %}
+                      <span class="fw-bold text-dark">{{ h.grand_total|currency }}</span>
+                    {% else %}
+                      <span class="text-muted small">Pending Bill</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if h.bill_id %}
+                      <a href="{{ url_for('customer.invoice', bill_id=h.bill_id) }}" class="btn btn-sm btn-outline-success py-1 px-2">
+                        <i class="bi bi-receipt me-1"></i> {{ h.invoice_number }}
+                      </a>
+                    {% else %}
+                      <span class="text-muted small">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-clock-history"></i></div>
+          <h5 class="empty-state-title">No completed service records found</h5>
+          <p class="empty-state-desc">Once your booked services are serviced and cleared by mechanics, complete records will appear here.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

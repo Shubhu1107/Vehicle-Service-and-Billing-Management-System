@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}My Invoices | {{ app_name }}{% endblock %}
+{% block page_title %}Billing &amp; Tax Invoices{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">My Invoices</h2>
+      <p class="text-muted small mb-0">View breakdown of labor, replacement parts, tax details, and payment receipts.</p>
+    </div>
+  </div>
+
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-receipt text-primary"></i>
+        <span>Invoice Ledger ({{ bills|length }})</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if bills %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Invoice Number</th>
+                <th>Booking Ref</th>
+                <th>Vehicle</th>
+                <th>Service Name</th>
+                <th>Invoice Date</th>
+                <th>Subtotal</th>
+                <th>Grand Total</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in bills %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.invoice_number }}</td>
+                  <td class="font-monospace small">{{ b.booking_number }}</td>
+                  <td>
+                    <div class="fw-medium text-dark">{{ b.brand }} {{ b.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ b.registration_number }}</span>
+                  </td>
+                  <td>{{ b.service_name }}</td>
+                  <td>{{ b.created_at|format_date }}</td>
+                  <td>{{ b.subtotal|currency }}</td>
+                  <td class="fw-bold text-dark fs-6">{{ b.grand_total|currency }}</td>
+                  <td>
+                    <span class="badge-status {{ b.payment_status|status_badge }}">{{ b.payment_status }}</span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('customer.invoice', bill_id=b.id) }}" class="btn btn-sm btn-outline-primary py-1 px-3">
+                      <i class="bi bi-printer me-1"></i> View / Print
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-receipt"></i></div>
+          <h5 class="empty-state-title">No invoices available</h5>
+          <p class="empty-state-desc">Once a service appointment is completed and billed by workshop management, your invoice will appear here.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

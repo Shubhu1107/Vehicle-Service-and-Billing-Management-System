@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Dashboard | {{ app_name }}{% endblock %}
+{% block page_title %}Customer Command Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Greeting Banner -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Hello, {{ current_user.name }} 👋</h2>
+      <p class="text-muted small mb-0">Track your vehicle maintenance, book appointments, and view verified repair invoices.</p>
+    </div>
+    <div class="d-flex gap-2 mt-3 mt-md-0">
+      <a href="{{ url_for('customer.book_service') }}" class="btn btn-primary btn-sm shadow-sm px-3">
+        <i class="bi bi-calendar-plus me-1"></i> Book New Service
+      </a>
+      <a href="{{ url_for('customer.vehicles') }}" class="btn btn-outline-secondary btn-sm px-3">
+        <i class="bi bi-car-front me-1"></i> Register Vehicle
+      </a>
+    </div>
+  </div>
+
+  <!-- Key Metrics Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">My Vehicles</p>
+            <h3 class="stat-value">{{ stats.total_vehicles }}</h3>
+          </div>
+          <div class="stat-icon primary">
+            <i class="bi bi-car-front-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Upcoming / Pending</p>
+            <h3 class="stat-value">{{ stats.pending_bookings }}</h3>
+          </div>
+          <div class="stat-icon warning">
+            <i class="bi bi-clock-history"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Active in Bay</p>
+            <h3 class="stat-value">{{ stats.active_services }}</h3>
+          </div>
+          <div class="stat-icon info">
+            <i class="bi bi-gear-wide-connected"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Pending Invoices</p>
+            <h3 class="stat-value text-danger">{{ stats.pending_bills }}</h3>
+          </div>
+          <div class="stat-icon danger">
+            <i class="bi bi-receipt"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Garage Showcase -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check text-primary"></i>
+            <span>My Registered Vehicles</span>
+          </div>
+          <a href="{{ url_for('customer.vehicles') }}" class="btn btn-sm btn-link text-decoration-none">Manage All Vehicles &rarr;</a>
+        </div>
+        <div class="card-body">
+          {% if vehicles %}
+            <div class="row g-3">
+              {% for v in vehicles %}
+                <div class="col-md-6 col-lg-4">
+                  <div class="card h-100 border shadow-none bg-light p-3 rounded-3 position-relative">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <span class="badge bg-dark px-2 py-1 font-monospace fw-bold">{{ v.registration_number }}</span>
+                      <span class="badge-status {{ v.latest_service_status|status_badge }}">
+                        {{ v.latest_service_status|default('No Services Yet') }}
+                      </span>
+                    </div>
+
+                    <h5 class="fw-bold mb-1 text-dark">{{ v.brand }} {{ v.model }}</h5>
+                    <div class="small text-muted mb-3">
+                      <span><i class="bi bi-tag me-1"></i>{{ v.vehicle_type }}</span> &bull;
+                      <span><i class="bi bi-fuel-pump ms-1 me-1"></i>{{ v.fuel_type }}</span> &bull;
+                      <span><i class="bi bi-speedometer ms-1 me-1"></i>{{ "{:,}".format(v.current_km) }} KM</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-muted">
+                      <div>
+                        Last Service:
+                        <strong>{{ v.last_service_date|format_date if v.last_service_date else 'None' }}</strong>
+                      </div>
+                      <a href="{{ url_for('customer.book_service') }}?vehicle_id={{ v.id }}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                        Book Service
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <div class="empty-state-icon"><i class="bi bi-car-front"></i></div>
+              <h5 class="empty-state-title">No vehicles registered yet</h5>
+              <p class="empty-state-desc">Register your car, motorcycle, or scooter to begin booking maintenance slots.</p>
+              <a href="{{ url_for('customer.vehicles') }}" class="btn btn-primary btn-sm">Add First Vehicle</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Bookings Table -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-primary"></i>
+        <span>Recent Service Bookings</span>
+      </div>
+      <a href="{{ url_for('customer.bookings') }}" class="btn btn-sm btn-link text-decoration-none">View All Bookings &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+      {% if recent_bookings %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Vehicle</th>
+                <th>Requested Service</th>
+                <th>Scheduled Date</th>
+                <th>Mechanic</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in recent_bookings %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.booking_number }}</td>
+                  <td>
+                    <div class="fw-medium">{{ b.brand }} {{ b.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ b.registration_number }}</span>
+                  </td>
+                  <td>{{ b.service_name }}</td>
+                  <td>
+                    <div>{{ b.preferred_date|format_date }}</div>
+                    <span class="text-muted small">{{ b.preferred_time }}</span>
+                  </td>
+                  <td>
+                    {% if b.mechanic_name %}
+                      <span class="text-dark fw-medium"><i class="bi bi-person-fill text-muted me-1"></i>{{ b.mechanic_name }}</span>
+                    {% else %}
+                      <span class="text-muted fst-italic">Pending Assignment</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge-status {{ b.status|status_badge }}">{{ b.status }}</span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('customer.booking_detail', booking_id=b.id) }}" class="btn btn-sm btn-light border py-1 px-2">
+                      <i class="bi bi-eye me-1"></i> View Status
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
+          <h5 class="empty-state-title">No service bookings made yet</h5>
+          <p class="empty-state-desc">Schedule your first general service, oil change, or brake inspection today.</p>
+          <a href="{{ url_for('customer.book_service') }}" class="btn btn-primary btn-sm">Book a Service Now</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

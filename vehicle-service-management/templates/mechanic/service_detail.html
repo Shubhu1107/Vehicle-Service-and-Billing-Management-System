@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Bay Job {{ booking.booking_number }} | {{ app_name }}{% endblock %}
+{% block page_title %}Service Bay Execution &amp; Log{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Top Bar -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <div class="mb-1">
+        <a href="{{ url_for('mechanic.dashboard') }}" class="text-decoration-none text-muted small">&larr; Back to Bay Dashboard</a>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <h2 class="h4 fw-bold mb-0 font-monospace text-primary">{{ booking.booking_number }}</h2>
+        <span class="badge-status {{ booking.status|status_badge }}">{{ booking.status }}</span>
+      </div>
+    </div>
+    <div class="mt-3 mt-md-0">
+      <span class="text-muted small">Appointment: <strong>{{ booking.preferred_date|format_date }} ({{ booking.preferred_time }})</strong></span>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Update Action Form & Timeline -->
+    <div class="col-lg-7">
+      <!-- Status & Remarks Form -->
+      <div class="dashboard-card mb-4 border-primary">
+        <div class="card-header bg-primary bg-opacity-10 text-primary">
+          <div class="d-flex align-items-center gap-2 fw-bold">
+            <i class="bi bi-gear-fill"></i>
+            <span>Update Bay Progress &amp; Work Notes</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('mechanic.service_detail', booking_id=booking.id) }}">
+            <div class="mb-3">
+              <label for="status" class="form-label fw-semibold small">Progress Status <span class="text-danger">*</span></label>
+              <select name="status" id="status" class="form-select" required>
+                <option value="Vehicle Received" {% if booking.status == 'Vehicle Received' %}selected{% endif %}>
+                  1. Vehicle Received (Checked in at workshop gate)
+                </option>
+                <option value="In Service" {% if booking.status == 'In Service' %}selected{% endif %}>
+                  2. In Service (Active on hydraulic lift / workbench)
+                </option>
+                <option value="Waiting for Parts" {% if booking.status == 'Waiting for Parts' %}selected{% endif %}>
+                  3. Waiting for Parts (Awaiting OEM spare shipment)
+                </option>
+                <option value="Completed" {% if booking.status == 'Completed' %}selected{% endif %}>
+                  4. Completed (Ready for road test &amp; final billing)
+                </option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="remarks" class="form-label fw-semibold small">Technical Remarks &amp; Diagnostics <span class="text-danger">*</span></label>
+              <textarea name="remarks" id="remarks" rows="3" class="form-control" placeholder="Describe diagnostic findings, actions taken, or reason for parts delay..." required></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="work_done" class="form-label fw-semibold small">Parts Replaced / Work Completed Summary</label>
+              <input type="text" name="work_done" id="work_done" class="form-control" placeholder="e.g. Flushed coolant, installed front ceramic pads, adjusted idle RPM">
+            </div>
+
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm">
+                <i class="bi bi-save me-1"></i> Save Service Update
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Service Updates Timeline -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-activity text-primary"></i>
+            <span>Recorded Job Updates &amp; Bay History</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if updates %}
+            <div class="service-timeline">
+              {% for u in updates %}
+                <div class="timeline-item">
+                  <div class="timeline-dot"><i class="bi bi-check2"></i></div>
+                  <div class="timeline-content">
+                    <div class="timeline-meta">
+                      <span class="badge-status {{ u.status|status_badge }}">{{ u.status }}</span>
+                      <span>{{ u.created_at|format_datetime }}</span>
+                    </div>
+                    <div class="small text-dark mt-1" style="white-space: pre-line;">{{ u.remarks }}</div>
+                    <div class="text-muted small mt-2 pt-1 border-top" style="font-size: 0.72rem;">
+                      <i class="bi bi-person me-1"></i>Logged by: <strong>{{ u.updated_by_name }}</strong> ({{ u.updated_by_role|capitalize }})
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-muted small text-center py-3">No updates recorded yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Vehicle & Customer Specs -->
+    <div class="col-lg-5">
+      <!-- Vehicle Details -->
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-car-front text-primary"></i>
+            <span>Vehicle Specifications</span>
+          </div>
+          <span class="badge bg-dark font-monospace">{{ booking.registration_number }}</span>
+        </div>
+        <div class="card-body">
+          <h5 class="fw-bold text-dark mb-1">{{ booking.brand }} {{ booking.model }}</h5>
+          <div class="text-muted small mb-3">
+            <span>{{ booking.vehicle_type }}</span> &bull; 
+            <span>{{ booking.fuel_type }}</span> &bull; 
+            <span>{{ booking.color }}</span>
+          </div>
+          <div class="p-2 bg-light rounded-2 border small mb-2">
+            <span class="text-muted">Recorded Odometer:</span>
+            <strong class="text-dark">{{ "{:,}".format(booking.current_km) }} km</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service Package & Complaint -->
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-wrench text-primary"></i>
+            <span>Requested Service Package</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <h6 class="fw-bold text-dark mb-1">{{ booking.service_name }}</h6>
+          <p class="text-muted small mb-3">{{ booking.service_description }}</p>
+          <div class="mb-3">
+            <span class="text-muted small fw-semibold d-block mb-1">Customer Complaint:</span>
+            <div class="p-3 bg-warning-subtle text-warning-emphasis rounded-3 border border-warning-subtle small fw-medium">
+              {{ booking.complaint }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Contact -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person text-primary"></i>
+            <span>Vehicle Owner / Customer</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <h6 class="fw-bold mb-1 text-dark">{{ booking.customer_name }}</h6>
+          <div class="small text-muted mb-1"><i class="bi bi-telephone text-primary me-1"></i>{{ booking.customer_phone }}</div>
+          <div class="small text-muted mb-1"><i class="bi bi-envelope text-primary me-1"></i>{{ booking.customer_email }}</div>
+          <div class="small text-muted"><i class="bi bi-geo-alt text-primary me-1"></i>{{ booking.customer_address|default('Registered Address') }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

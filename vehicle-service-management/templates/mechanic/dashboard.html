@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Mechanic Bay Dashboard | {{ app_name }}{% endblock %}
+{% block page_title %}Technician Bay Command Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Mechanic Bay: {{ current_user.name }}</h2>
+      <p class="text-muted small mb-0">Active vehicle service queue, inspection logs, and status updates.</p>
+    </div>
+    <div class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+      <i class="bi bi-broadcast me-1"></i> Technician Live on Duty
+    </div>
+  </div>
+
+  <!-- Workload Metric Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Assigned Jobs</p>
+            <h3 class="stat-value">{{ stats.assigned_services }}</h3>
+          </div>
+          <div class="stat-icon primary">
+            <i class="bi bi-tools"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Awaiting Vehicle</p>
+            <h3 class="stat-value">{{ stats.pending_work }}</h3>
+          </div>
+          <div class="stat-icon warning">
+            <i class="bi bi-box-arrow-in-down-right"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Currently on Ramp</p>
+            <h3 class="stat-value text-primary">{{ stats.in_service }}</h3>
+          </div>
+          <div class="stat-icon info">
+            <i class="bi bi-gear-wide-connected"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="stat-label">Completed Today</p>
+            <h3 class="stat-value text-success">{{ stats.completed_today }}</h3>
+          </div>
+          <div class="stat-icon success">
+            <i class="bi bi-check2-all"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assigned Services Queue -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-card-checklist text-primary"></i>
+        <span>My Active Service Queue</span>
+      </div>
+      <a href="{{ url_for('mechanic.services') }}" class="btn btn-sm btn-link text-decoration-none">View All Assigned Jobs &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+      {% if bookings %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Customer</th>
+                <th>Vehicle</th>
+                <th>Service Package</th>
+                <th>Scheduled Slot</th>
+                <th>Bay Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in bookings %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.booking_number }}</td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ b.customer_name }}</div>
+                    <div class="text-muted small"><i class="bi bi-telephone me-1"></i>{{ b.customer_phone }}</div>
+                  </td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ b.brand }} {{ b.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ b.registration_number }} &bull; {{ b.fuel_type }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.service_name }}</div>
+                    <span class="text-muted small">Est: {{ b.estimated_duration }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.preferred_date|format_date }}</div>
+                    <span class="text-muted small">{{ b.preferred_time }}</span>
+                  </td>
+                  <td>
+                    <span class="badge-status {{ b.status|status_badge }}">{{ b.status }}</span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('mechanic.service_detail', booking_id=b.id) }}" class="btn btn-sm btn-primary py-1 px-3">
+                      <i class="bi bi-wrench me-1"></i> Work on Job
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-check-circle"></i></div>
+          <h5 class="empty-state-title">No service jobs assigned right now</h5>
+          <p class="empty-state-desc">Your queue is clear. New repair orders assigned by the workshop supervisor will appear here.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

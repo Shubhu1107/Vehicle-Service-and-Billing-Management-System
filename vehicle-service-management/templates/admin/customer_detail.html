@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Customer {{ customer.name }} | {{ app_name }}{% endblock %}
+{% block page_title %}Customer Profile &amp; Records{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <div class="mb-1">
+        <a href="{{ url_for('admin.customers') }}" class="text-decoration-none text-muted small">&larr; Back to Customers Directory</a>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <h2 class="h4 fw-bold mb-0 text-dark">{{ customer.name }}</h2>
+        <span class="badge-status {{ customer.status|status_badge }}">{{ customer.status|capitalize }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- Customer Profile & Edit Card -->
+    <div class="col-lg-5">
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person-lines-fill text-primary"></i>
+            <span>Customer Contact Profile</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('admin.edit_customer', customer_id=customer.customer_id) }}">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Customer Full Name</label>
+              <input type="text" name="name" class="form-control" value="{{ customer.name }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Email Address (Read-only)</label>
+              <input type="email" class="form-control bg-light" value="{{ customer.email }}" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Phone Number</label>
+              <input type="tel" name="phone" class="form-control" value="{{ customer.phone }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Address</label>
+              <textarea name="address" rows="2" class="form-control">{{ customer.address }}</textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Account Status</label>
+              <select name="status" class="form-select">
+                <option value="active" {% if customer.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if customer.status == 'inactive' %}selected{% endif %}>Inactive / Deactivated</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm w-100">Save Customer Changes</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicles List -->
+    <div class="col-lg-7">
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-car-front text-primary"></i>
+            <span>Registered Vehicles ({{ vehicles|length }})</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          {% if vehicles %}
+            <div class="table-responsive">
+              <table class="table table-custom mb-0">
+                <thead>
+                  <tr>
+                    <th>Registration No.</th>
+                    <th>Make &amp; Model</th>
+                    <th>Type / Fuel</th>
+                    <th>Odometer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for v in vehicles %}
+                    <tr>
+                      <td>
+                        <span class="badge bg-dark font-monospace">{{ v.registration_number }}</span>
+                      </td>
+                      <td class="fw-semibold text-dark">{{ v.brand }} {{ v.model }}</td>
+                      <td>{{ v.vehicle_type }} &bull; {{ v.fuel_type }}</td>
+                      <td>{{ "{:,}".format(v.current_km) }} km</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-4 text-muted small">No vehicles registered for this customer yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Invoices Summary -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-receipt text-primary"></i>
+            <span>Invoices ({{ invoices|length }})</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          {% if invoices %}
+            <div class="table-responsive">
+              <table class="table table-custom mb-0">
+                <thead>
+                  <tr>
+                    <th>Invoice No.</th>
+                    <th>Date</th>
+                    <th>Grand Total</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for inv in invoices %}
+                    <tr>
+                      <td class="fw-bold font-monospace text-primary">{{ inv.invoice_number }}</td>
+                      <td>{{ inv.created_at|format_date }}</td>
+                      <td class="fw-bold">{{ inv.grand_total|currency }}</td>
+                      <td>
+                        <span class="badge-status {{ inv.payment_status|status_badge }}">{{ inv.payment_status }}</span>
+                      </td>
+                      <td class="text-end">
+                        <a href="{{ url_for('admin.invoice', bill_id=inv.id) }}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                          <i class="bi bi-printer me-1"></i> Print
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-4 text-muted small">No invoices billed to this customer yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking History Table -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-primary"></i>
+        <span>Service Bookings History ({{ bookings|length }})</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if bookings %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Vehicle</th>
+                <th>Service Name</th>
+                <th>Date</th>
+                <th>Technician</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in bookings %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.booking_number }}</td>
+                  <td>{{ b.brand }} {{ b.model }} ({{ b.registration_number }})</td>
+                  <td>{{ b.service_name }}</td>
+                  <td>{{ b.preferred_date|format_date }}</td>
+                  <td>{{ b.mechanic_name|default('Unassigned') }}</td>
+                  <td>
+                    <span class="badge-status {{ b.status|status_badge }}">{{ b.status }}</span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('admin.booking_detail', booking_id=b.id) }}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                      Review
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-muted small">No bookings recorded for this customer.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

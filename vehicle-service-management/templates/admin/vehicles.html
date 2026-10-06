@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Vehicles Management | {{ app_name }}{% endblock %}
+{% block page_title %}Vehicle Fleet Directory{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Vehicle Inventory</h2>
+      <p class="text-muted small mb-0">Monitor all customer-owned motor vehicles registered in the workshop system.</p>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#adminAddVehicleModal">
+      <i class="bi bi-plus-circle me-1"></i> Register Vehicle
+    </button>
+  </div>
+
+  <!-- Search & Filter -->
+  <div class="dashboard-card mb-4">
+    <div class="card-body p-3">
+      <form method="GET" action="{{ url_for('admin.vehicles') }}" class="row g-2 align-items-center">
+        <div class="col-md-6 col-lg-5">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+            <input type="text" name="search" class="form-control" placeholder="Search by registration number, brand, model, or owner..." value="{{ search }}">
+          </div>
+        </div>
+        <div class="col-md-3 col-lg-3">
+          <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="all" {% if type_filter == 'all' %}selected{% endif %}>All Vehicle Types</option>
+            <option value="Car" {% if type_filter == 'Car' %}selected{% endif %}>Cars</option>
+            <option value="Bike" {% if type_filter == 'Bike' %}selected{% endif %}>Bikes</option>
+            <option value="Scooter" {% if type_filter == 'Scooter' %}selected{% endif %}>Scooters</option>
+            <option value="Other" {% if type_filter == 'Other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+          {% if search or type_filter != 'all' %}
+            <a href="{{ url_for('admin.vehicles') }}" class="btn btn-sm btn-link text-decoration-none">Clear</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Vehicles Table -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-car-front text-primary"></i>
+        <span>Registered Vehicles ({{ vehicles|length }})</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if vehicles %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Registration No.</th>
+                <th>Brand &amp; Model</th>
+                <th>Owner</th>
+                <th>Type &amp; Fuel</th>
+                <th>Year</th>
+                <th>Odometer</th>
+                <th>Latest Status</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in vehicles %}
+                <tr>
+                  <td>
+                    <span class="badge bg-dark font-monospace px-2 py-1">{{ v.registration_number }}</span>
+                  </td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ v.brand }} {{ v.model }}</div>
+                    <span class="text-muted small">{{ v.color }}</span>
+                  </td>
+                  <td>
+                    <div class="fw-medium text-dark">{{ v.customer_name }}</div>
+                    <span class="text-muted small"><i class="bi bi-telephone me-1"></i>{{ v.customer_phone }}</span>
+                  </td>
+                  <td>
+                    <span>{{ v.vehicle_type }}</span> &bull; 
+                    <span class="text-muted small">{{ v.fuel_type }}</span>
+                  </td>
+                  <td>{{ v.manufacturing_year }}</td>
+                  <td>{{ "{:,}".format(v.current_km) }} km</td>
+                  <td>
+                    <span class="badge-status {{ v.latest_service_status|status_badge }}">
+                      {{ v.latest_service_status|default('Idle') }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#adminEditModal{{ v.id }}" title="Edit Vehicle">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#adminDeleteModal{{ v.id }}" title="Delete Vehicle">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+
+                    <!-- Edit Vehicle Modal -->
+                    <div class="modal fade" id="adminEditModal{{ v.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog text-start">
+                        <div class="modal-content">
+                          <form method="POST" action="{{ url_for('admin.edit_vehicle', vehicle_id=v.id) }}">
+                            <div class="modal-header">
+                              <h5 class="modal-title fw-bold">Edit Vehicle: {{ v.registration_number }}</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                              <div class="row g-3">
+                                <div class="col-12">
+                                  <label class="form-label small fw-semibold">Registration Number</label>
+                                  <input type="text" name="registration_number" class="form-control text-uppercase" value="{{ v.registration_number }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                  <label class="form-label small fw-semibold">Brand</label>
+                                  <input type="text" name="brand" class="form-control" value="{{ v.brand }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                  <label class="form-label small fw-semibold">Model</label>
+                                  <input type="text" name="model" class="form-control" value="{{ v.model }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                  <label class="form-label small fw-semibold">Type</label>
+                                  <select name="vehicle_type" class="form-select">
+                                    <option value="Car" {% if v.vehicle_type == 'Car' %}selected{% endif %}>Car</option>
+                                    <option value="Bike" {% if v.vehicle_type == 'Bike' %}selected{% endif %}>Bike</option>
+                                    <option value="Scooter" {% if v.vehicle_type == 'Scooter' %}selected{% endif %}>Scooter</option>
+                                    <option value="Other" {% if v.vehicle_type == 'Other' %}selected{% endif %}>Other</option>
+                                  </select>
+                                </div>
+                                <div class="col-md-6">
+                                  <label class="form-label small fw-semibold">Fuel</label>
+                                  <select name="fuel_type" class="form-select">
+                                    <option value="Petrol" {% if v.fuel_type == 'Petrol' %}selected{% endif %}>Petrol</option>
+                                    <option value="Diesel" {% if v.fuel_type == 'Diesel' %}selected{% endif %}>Diesel</option>
+                                    <option value="CNG" {% if v.fuel_type == 'CNG' %}selected{% endif %}>CNG</option>
+                                    <option value="Electric" {% if v.fuel_type == 'Electric' %}selected{% endif %}>Electric</option>
+                                    <option value="Hybrid" {% if v.fuel_type == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                                  </select>
+                                </div>
+                                <div class="col-md-4">
+                                  <label class="form-label small fw-semibold">Year</label>
+                                  <input type="number" name="manufacturing_year" class="form-control" value="{{ v.manufacturing_year }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                  <label class="form-label small fw-semibold">Color</label>
+                                  <input type="text" name="color" class="form-control" value="{{ v.color }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                  <label class="form-label small fw-semibold">KM</label>
+                                  <input type="number" name="current_km" class="form-control" value="{{ v.current_km }}" required>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                              <button type="submit" class="btn btn-primary btn-sm">Update Vehicle</button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Delete Vehicle Modal -->
+                    <div class="modal fade" id="adminDeleteModal{{ v.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-sm text-start">
+                        <div class="modal-content">
+                          <form method="POST" action="{{ url_for('admin.delete_vehicle', vehicle_id=v.id) }}">
+                            <div class="modal-header">
+                              <h5 class="modal-title fw-bold text-danger">Delete Vehicle</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body small">
+                              Delete <strong>{{ v.brand }} {{ v.model }} ({{ v.registration_number }})</strong>?
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-car-front"></i></div>
+          <h5 class="empty-state-title">No vehicles found</h5>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Admin Add Vehicle Modal -->
+<div class="modal fade" id="adminAddVehicleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.vehicles') }}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle text-primary me-2"></i>Register Vehicle</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Assign to Customer Owner <span class="text-danger">*</span></label>
+              <select name="customer_id" class="form-select" required>
+                <option value="" disabled selected>-- Select Customer --</option>
+                {% for c in customers %}
+                  <option value="{{ c.id }}">{{ c.name }} ({{ c.phone }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Registration Number <span class="text-danger">*</span></label>
+              <input type="text" name="registration_number" class="form-control text-uppercase" placeholder="MH-12-XX-1234" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Brand <span class="text-danger">*</span></label>
+              <input type="text" name="brand" class="form-control" placeholder="e.g. Maruti / Honda" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Model <span class="text-danger">*</span></label>
+              <input type="text" name="model" class="form-control" placeholder="e.g. Swift / City" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Type</label>
+              <select name="vehicle_type" class="form-select">
+                <option value="Car" selected>Car</option>
+                <option value="Bike">Bike</option>
+                <option value="Scooter">Scooter</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Fuel</label>
+              <select name="fuel_type" class="form-select">
+                <option value="Petrol" selected>Petrol</option>
+                <option value="Diesel">Diesel</option>
+                <option value="CNG">CNG</option>
+                <option value="Electric">Electric</option>
+                <option value="Hybrid">Hybrid</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Year <span class="text-danger">*</span></label>
+              <input type="number" name="manufacturing_year" class="form-control" value="2022" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Color <span class="text-danger">*</span></label>
+              <input type="text" name="color" class="form-control" placeholder="e.g. Red" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">KM</label>
+              <input type="number" name="current_km" class="form-control" value="0" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Register Vehicle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

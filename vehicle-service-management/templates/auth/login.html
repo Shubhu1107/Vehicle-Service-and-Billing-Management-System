@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In | {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="auth-split-container">
+  <!-- Left Side: Service Center Visual & Features Section -->
+  <div class="auth-brand-side">
+    <div>
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-3 p-2 bg-primary bg-opacity-25 border border-primary border-opacity-50">
+          <i class="bi bi-shield-shaded text-info fs-2"></i>
+        </div>
+        <div>
+          <h2 class="fw-bold mb-0 text-white tracking-tight">AutoCare Pro</h2>
+          <span class="text-info small fw-semibold text-uppercase tracking-wider">Vehicle Service &amp; Billing ERP</span>
+        </div>
+      </div>
+
+      <h1 class="display-6 fw-bold text-white mb-3">
+        Precision vehicle maintenance, effortless service tracking.
+      </h1>
+      <p class="text-light opacity-75 fs-6 mb-5">
+        Streamline your workshop workflow from appointment scheduling to mechanic bays and computerized GST invoicing.
+      </p>
+
+      <div class="vstack gap-3 mb-5">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle bg-white bg-opacity-10 p-2 text-info"><i class="bi bi-calendar2-check"></i></div>
+          <span class="text-white">Seamless digital booking &amp; bay status tracking</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle bg-white bg-opacity-10 p-2 text-info"><i class="bi bi-tools"></i></div>
+          <span class="text-white">Direct mechanic task queues &amp; service log updates</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle bg-white bg-opacity-10 p-2 text-info"><i class="bi bi-receipt-cutoff"></i></div>
+          <span class="text-white">Itemized billing with automated GST calculations</span>
+        </div>
+      </div>
+    </div>
+
+
+   
+    <div class="card bg-white bg-opacity-10 border-0 p-3 rounded-3 backdrop-blur">
+      <div class="d-flex align-items-center gap-2 mb-2 text-info fw-semibold small">
+      </div>
+      
+    </div>
+  </div> 
+
+  <!-- Right Side: Login Form -->
+  <div class="auth-form-side">
+    <div class="auth-form-wrapper">
+      <div class="mb-4">
+        <h2 class="fw-bold text-dark mb-1">Welcome back</h2>
+        <p class="text-muted small">Enter your credentials to access your portal</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('auth.login') }}" class="needs-validation">
+        <div class="mb-3">
+          <label for="email" class="form-label fw-semibold small">Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+            <input type="email" class="form-control border-start-0 ps-0" id="email" name="email" value="{{ email|default('') }}" placeholder="name@domain.com" required autofocus>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label for="password" class="form-label fw-semibold small mb-0">Password</label>
+          </div>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+            <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+            <label class="form-check-label small text-muted" for="remember">Remember me</label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm mb-3">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        </button>
+
+        <div class="text-center mt-4 pt-3 border-top">
+          <p class="text-muted small mb-0">
+            Don't have a customer account?
+            <a href="{{ url_for('auth.register') }}" class="fw-bold text-primary text-decoration-none ms-1">Register Vehicle &amp; Account</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

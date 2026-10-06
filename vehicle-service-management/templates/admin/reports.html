@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Reports &amp; Analytics | {{ app_name }}{% endblock %}
+{% block page_title %}Workshop Operational &amp; Financial Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Top Bar with Print Report Button -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Workshop Reports &amp; Analytics</h2>
+      <p class="text-muted small mb-0">Multi-criteria filtering for labor throughput, bay workload, revenue collections, and service volume.</p>
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm no-print" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i> Print / Export Report
+    </button>
+  </div>
+
+  <!-- Multi-Criteria Filter Bar (Hidden in Print) -->
+  <div class="dashboard-card mb-4 no-print">
+    <div class="card-header bg-light">
+      <span class="fw-semibold text-dark"><i class="bi bi-funnel me-1 text-primary"></i> Filter Report Criteria</span>
+    </div>
+    <div class="card-body p-3">
+      <form method="GET" action="{{ url_for('admin.reports') }}" class="row g-2 align-items-end">
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Start Date</label>
+          <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">End Date</label>
+          <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+            <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+            <option value="In Service" {% if status_filter == 'In Service' %}selected{% endif %}>In Service</option>
+            <option value="Waiting for Parts" {% if status_filter == 'Waiting for Parts' %}selected{% endif %}>Waiting for Parts</option>
+            <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+            <option value="Delivered" {% if status_filter == 'Delivered' %}selected{% endif %}>Delivered</option>
+            <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Mechanic</label>
+          <select name="mechanic_id" class="form-select form-select-sm">
+            <option value="all" {% if mechanic_filter == 'all' %}selected{% endif %}>All Mechanics</option>
+            {% for m in all_mechanics %}
+              <option value="{{ m.id }}" {% if mechanic_filter|int == m.id %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Service Package</label>
+          <select name="service_id" class="form-select form-select-sm">
+            <option value="all" {% if service_filter == 'all' %}selected{% endif %}>All Services</option>
+            {% for s in all_services %}
+              <option value="{{ s.id }}" {% if service_filter|int == s.id %}selected{% endif %}>{{ s.service_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 text-end pt-2">
+          <a href="{{ url_for('admin.reports') }}" class="btn btn-sm btn-link text-decoration-none">Reset Filters</a>
+          <button type="submit" class="btn btn-sm btn-primary px-3">Generate Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <p class="stat-label">Total Volume</p>
+        <h3 class="stat-value text-dark">{{ metrics.total_services }}</h3>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <p class="stat-label">Completed</p>
+        <h3 class="stat-value text-success">{{ metrics.completed_services }}</h3>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <p class="stat-label">Pending / Bay</p>
+        <h3 class="stat-value text-warning">{{ metrics.pending_bookings }}</h3>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <p class="stat-label">Cancelled</p>
+        <h3 class="stat-value text-danger">{{ metrics.cancelled_bookings }}</h3>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <p class="stat-label">Paid Revenue</p>
+        <h3 class="stat-value text-success" style="font-size: 1.3rem;">{{ metrics.paid_revenue|currency }}</h3>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="stat-card">
+        <p class="stat-label">Pending Dues</p>
+        <h3 class="stat-value text-danger" style="font-size: 1.3rem;">{{ metrics.pending_revenue|currency }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breakdown Tables Row: Mechanic Workload & Service Popularity -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="dashboard-card h-100 mb-0">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-tools text-primary"></i>
+            <span>Mechanic Workload &amp; Throughput</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-custom table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Mechanic</th>
+                  <th>Specialization</th>
+                  <th class="text-center">Total</th>
+                  <th class="text-center">Active</th>
+                  <th class="text-center">Done</th>
+                  <th class="text-end">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in mechanic_stats %}
+                  <tr>
+                    <td class="fw-bold text-dark">{{ m.name }}</td>
+                    <td class="small text-muted">{{ m.specialization|truncate(24) }}</td>
+                    <td class="text-center">{{ m.total_assigned }}</td>
+                    <td class="text-center"><span class="badge bg-primary-subtle text-primary">{{ m.in_progress }}</span></td>
+                    <td class="text-center"><span class="badge bg-success-subtle text-success">{{ m.completed }}</span></td>
+                    <td class="text-end fw-semibold">{{ m.revenue_generated|currency }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="dashboard-card h-100 mb-0">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-pie-chart text-primary"></i>
+            <span>Service Package Demand</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-custom table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Service Package</th>
+                  <th>Base Rate</th>
+                  <th class="text-center">Bookings</th>
+                  <th class="text-end">Revenue Generated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in service_stats %}
+                  <tr>
+                    <td class="fw-bold text-dark">{{ s.service_name }}</td>
+                    <td>{{ s.base_price|currency }}</td>
+                    <td class="text-center">
+                      <span class="badge bg-secondary-subtle text-secondary px-2">{{ s.booking_count }}</span>
+                    </td>
+                    <td class="text-end fw-semibold">{{ s.total_revenue|currency }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtered Records Table -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-table text-primary"></i>
+        <span>Filtered Service Orders Ledger (Showing up to 50 results)</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if report_rows %}
+        <div class="table-responsive">
+          <table class="table table-custom table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Customer</th>
+                <th>Vehicle</th>
+                <th>Package</th>
+                <th>Date</th>
+                <th>Technician</th>
+                <th>Status</th>
+                <th>Invoice</th>
+                <th class="text-end">Grand Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in report_rows %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ r.booking_number }}</td>
+                  <td>{{ r.customer_name }}</td>
+                  <td>{{ r.brand }} {{ r.model }} ({{ r.registration_number }})</td>
+                  <td>{{ r.service_name }}</td>
+                  <td>{{ r.preferred_date|format_date }}</td>
+                  <td>{{ r.mechanic_name|default('Unassigned') }}</td>
+                  <td>
+                    <span class="badge-status {{ r.status|status_badge }}">{{ r.status }}</span>
+                  </td>
+                  <td>
+                    {% if r.invoice_number %}
+                      <span class="font-monospace small">{{ r.invoice_number }}</span>
+                    {% else %}
+                      <span class="text-muted small">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end fw-bold text-dark">
+                    {{ r.grand_total|currency if r.grand_total else '—' }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+          <h5 class="empty-state-title">No service records found</h5>
+          <p class="empty-state-desc">Try widening the date range or reset the search filters.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Registration | {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="auth-split-container">
+  <!-- Left Side: Brand Visual -->
+  <div class="auth-brand-side">
+    <div>
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-3 p-2 bg-primary bg-opacity-25 border border-primary border-opacity-50">
+          <i class="bi bi-shield-shaded text-info fs-2"></i>
+        </div>
+        <div>
+          <h2 class="fw-bold mb-0 text-white tracking-tight">AutoCare Pro</h2>
+          <span class="text-info small fw-semibold text-uppercase tracking-wider">Customer Portal</span>
+        </div>
+      </div>
+
+      <h1 class="display-6 fw-bold text-white mb-3">
+        Experience premium vehicle care tailored for you.
+      </h1>
+      <p class="text-light opacity-75 fs-6 mb-4">
+        Create your account in under a minute to register your vehicles, track repair progress in real time, and download verified digital tax invoices.
+      </p>
+
+      <ul class="list-unstyled vstack gap-3 text-white-50 small mb-0">
+        <li><i class="bi bi-check2-circle text-success me-2 fs-6"></i> Add multiple 2-wheelers and 4-wheelers under one profile</li>
+        <li><i class="bi bi-check2-circle text-success me-2 fs-6"></i> Instant status updates when mechanics receive your vehicle</li>
+        <li><i class="bi bi-check2-circle text-success me-2 fs-6"></i> Complete transparent service history log</li>
+      </ul>
+    </div>
+
+    <div class="small text-white-50">
+      Need quick assistance? Call our service line at <strong>{{ workshop_settings.workshop_phone }}</strong>
+    </div>
+  </div>
+
+  <!-- Right Side: Registration Form -->
+  <div class="auth-form-side">
+    <div class="auth-form-wrapper" style="max-width: 520px;">
+      <div class="mb-4">
+        <h2 class="fw-bold text-dark mb-1">Create Customer Account</h2>
+        <p class="text-muted small">Register to book repairs and manage your garage records</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('auth.register') }}" class="needs-validation">
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label for="name" class="form-label fw-semibold small">Full Name <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+              <input type="text" class="form-control border-start-0 ps-0" id="name" name="name" value="{{ name|default('') }}" placeholder="e.g. Rahul Sharma" required>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="email" class="form-label fw-semibold small">Email Address <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+              <input type="email" class="form-control border-start-0 ps-0" id="email" name="email" value="{{ email|default('') }}" placeholder="rahul@domain.com" required>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="phone" class="form-label fw-semibold small">Phone Number <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-telephone"></i></span>
+              <input type="tel" class="form-control border-start-0 ps-0" id="phone" name="phone" value="{{ phone|default('') }}" placeholder="9876543210" required>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label for="address" class="form-label fw-semibold small">Residence Address</label>
+            <textarea class="form-control" id="address" name="address" rows="2" placeholder="Street, Apartment, City, Pincode">{{ address|default('') }}</textarea>
+          </div>
+
+          <div class="col-md-6">
+            <label for="password" class="form-label fw-semibold small">Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+              <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="At least 6 chars" required minlength="6">
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="confirm_password" class="form-label fw-semibold small">Confirm Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-shield-check"></i></span>
+              <input type="password" class="form-control border-start-0 ps-0" id="confirm_password" name="confirm_password" placeholder="Repeat password" required minlength="6">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm mt-4">
+          <i class="bi bi-person-check me-1"></i> Complete Registration
+        </button>
+
+        <div class="text-center mt-3 pt-3 border-top">
+          <p class="text-muted small mb-0">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}" class="fw-bold text-primary text-decoration-none ms-1">Sign In here</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

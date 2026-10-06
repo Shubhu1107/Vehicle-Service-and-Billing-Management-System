@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Bookings Management | {{ app_name }}{% endblock %}
+{% block page_title %}Service Bookings Master Ledger{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Service Bookings</h2>
+      <p class="text-muted small mb-0">Approve incoming customer bookings, allocate service bays to mechanics, and track repair progression.</p>
+    </div>
+  </div>
+
+  <!-- Search & Multi-Filter Header -->
+  <div class="dashboard-card mb-4">
+    <div class="card-body p-3">
+      <form method="GET" action="{{ url_for('admin.bookings') }}" class="row g-2 align-items-center">
+        <div class="col-md-4">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+            <input type="text" name="search" class="form-control" placeholder="Search by booking #, customer, or vehicle reg..." value="{{ search }}">
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Service Statuses</option>
+            <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending Approval</option>
+            <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+            <option value="Mechanic Assigned" {% if status_filter == 'Mechanic Assigned' %}selected{% endif %}>Mechanic Assigned</option>
+            <option value="Vehicle Received" {% if status_filter == 'Vehicle Received' %}selected{% endif %}>Vehicle Received</option>
+            <option value="In Service" {% if status_filter == 'In Service' %}selected{% endif %}>In Service</option>
+            <option value="Waiting for Parts" {% if status_filter == 'Waiting for Parts' %}selected{% endif %}>Waiting for Parts</option>
+            <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed (Ready to Bill)</option>
+            <option value="Delivered" {% if status_filter == 'Delivered' %}selected{% endif %}>Delivered &amp; Closed</option>
+            <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <select name="mechanic_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All Technicians</option>
+            {% for m in mechanics %}
+              <option value="{{ m.id }}" {% if mechanic_filter|int == m.id %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-auto">
+          <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+          {% if search or status_filter != 'all' or mechanic_filter %}
+            <a href="{{ url_for('admin.bookings') }}" class="btn btn-sm btn-link text-decoration-none">Clear</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bookings Master Table -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-calendar-check text-primary"></i>
+        <span>Bookings Registry ({{ bookings|length }})</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if bookings %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Customer</th>
+                <th>Vehicle Details</th>
+                <th>Service Package</th>
+                <th>Scheduled Slot</th>
+                <th>Technician</th>
+                <th>Status</th>
+                <th>Billing</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in bookings %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.booking_number }}</td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ b.customer_name }}</div>
+                    <span class="text-muted small"><i class="bi bi-telephone me-1"></i>{{ b.customer_phone }}</span>
+                  </td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ b.brand }} {{ b.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ b.registration_number }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.service_name }}</div>
+                    <span class="text-muted small">{{ b.base_price|currency }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.preferred_date|format_date }}</div>
+                    <span class="text-muted small">{{ b.preferred_time }}</span>
+                  </td>
+                  <td>
+                    {% if b.mechanic_name %}
+                      <span class="text-dark fw-medium"><i class="bi bi-person me-1"></i>{{ b.mechanic_name }}</span>
+                    {% else %}
+                      <span class="badge bg-warning-subtle text-warning-emphasis small">Unassigned</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge-status {{ b.status|status_badge }}">{{ b.status }}</span>
+                  </td>
+                  <td>
+                    {% if b.invoice_number %}
+                      <a href="{{ url_for('admin.invoice', bill_id=b.bill_id) }}" class="fw-bold text-decoration-none small">
+                        {{ b.invoice_number }}
+                      </a>
+                      <div class="badge-status {{ b.payment_status|status_badge }}" style="font-size: 0.65rem; padding: 0.15rem 0.35rem;">
+                        {{ b.payment_status }}
+                      </div>
+                    {% else %}
+                      {% if b.status in ['Completed', 'Delivered'] %}
+                        <a href="{{ url_for('admin.generate_bill', booking_id=b.id) }}" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;">
+                          Generate Bill
+                        </a>
+                      {% else %}
+                        <span class="text-muted small">—</span>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('admin.booking_detail', booking_id=b.id) }}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                      <i class="bi bi-sliders me-1"></i> Manage
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
+          <h5 class="empty-state-title">No bookings found</h5>
+          <p class="empty-state-desc">Try clearing the applied filters or wait for customer bookings.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

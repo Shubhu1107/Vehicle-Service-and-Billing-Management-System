@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Mechanics Management | {{ app_name }}{% endblock %}
+{% block page_title %}Workshop Technicians Directory{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Mechanics &amp; Technicians</h2>
+      <p class="text-muted small mb-0">Manage service bay staff, certifications, workload distribution, and technician accounts.</p>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#addMechanicModal">
+      <i class="bi bi-person-plus me-1"></i> Add Mechanic Staff
+    </button>
+  </div>
+
+  <div class="dashboard-card">
+    <div class="card-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-tools text-primary"></i>
+        <span>Active Technicians ({{ mechanics|length }})</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if mechanics %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th style="width: 50px;">ID</th>
+                <th>Technician Name</th>
+                <th>Contact</th>
+                <th>Specialization</th>
+                <th>Experience</th>
+                <th>Active Load</th>
+                <th>Completed</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in mechanics %}
+                <tr>
+                  <td class="font-monospace small text-muted">#{{ m.id }}</td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ m.name }}</div>
+                    <span class="text-muted small">Joined {{ m.joining_date|format_date }}</span>
+                  </td>
+                  <td>
+                    <div>{{ m.phone }}</div>
+                    <span class="text-muted small">{{ m.email }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark border">{{ m.specialization }}</span>
+                  </td>
+                  <td>{{ m.experience }} Years</td>
+                  <td>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                      {{ m.active_workload }} Active
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      {{ m.completed_count }} Done
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge-status {{ m.status|status_badge }}">{{ m.status }}</span>
+                  </td>
+                  <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" data-bs-toggle="modal" data-bs-target="#editMechanicModal{{ m.id }}">
+                      <i class="bi bi-pencil me-1"></i> Edit
+                    </button>
+
+                    <!-- Edit Mechanic Modal -->
+                    <div class="modal fade" id="editMechanicModal{{ m.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog text-start">
+                        <div class="modal-content">
+                          <form method="POST" action="{{ url_for('admin.edit_mechanic', mechanic_id=m.id) }}">
+                            <div class="modal-header">
+                              <h5 class="modal-title fw-bold">Edit Technician: {{ m.name }}</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                              <div class="row g-3">
+                                <div class="col-12">
+                                  <label class="form-label small fw-semibold">Full Name</label>
+                                  <input type="text" name="name" class="form-control" value="{{ m.name }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                  <label class="form-label small fw-semibold">Phone Number</label>
+                                  <input type="tel" name="phone" class="form-control" value="{{ m.phone }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                  <label class="form-label small fw-semibold">Experience (Years)</label>
+                                  <input type="number" name="experience" class="form-control" value="{{ m.experience }}" required>
+                                </div>
+                                <div class="col-12">
+                                  <label class="form-label small fw-semibold">Specialization Area</label>
+                                  <input type="text" name="specialization" class="form-control" value="{{ m.specialization }}" required>
+                                </div>
+                                <div class="col-12">
+                                  <label class="form-label small fw-semibold">Availability Status</label>
+                                  <select name="status" class="form-select">
+                                    <option value="Available" {% if m.status == 'Available' %}selected{% endif %}>Available (Open for Assignment)</option>
+                                    <option value="Busy" {% if m.status == 'Busy' %}selected{% endif %}>Busy (Active Bay In Progress)</option>
+                                    <option value="Inactive" {% if m.status == 'Inactive' %}selected{% endif %}>Inactive (On Leave / Suspended)</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                              <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-tools"></i></div>
+          <h5 class="empty-state-title">No mechanics found</h5>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Add Mechanic Modal -->
+<div class="modal fade" id="addMechanicModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.mechanics') }}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="bi bi-person-plus text-primary me-2"></i>Add Mechanic Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="e.g. Sunil Deshpande" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control" placeholder="sunil@autocare.com" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Phone Number <span class="text-danger">*</span></label>
+              <input type="tel" name="phone" class="form-control" placeholder="9876543210" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Specialization Area <span class="text-danger">*</span></label>
+              <input type="text" name="specialization" class="form-control" placeholder="e.g. Engine Overhaul, Hybrid Systems, Auto-Electrical" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Experience (Years)</label>
+              <input type="number" name="experience" class="form-control" value="3" min="0" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Initial Status</label>
+              <select name="status" class="form-select">
+                <option value="Available" selected>Available</option>
+                <option value="Busy">Busy</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Default Password</label>
+              <input type="text" name="password" class="form-control" value="mechanic123">
+              <div class="form-text small">Default is 'mechanic123'.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Create Mechanic</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

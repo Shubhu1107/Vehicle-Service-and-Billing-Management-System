@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Tax Invoice {{ bill.invoice_number }} | {{ app_name }}{% endblock %}
+{% block page_title %}Official Tax Invoice &amp; Payment Receipt{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Top Bar Controls (Hidden in Print Mode) -->
+  <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <a href="{{ url_for('admin.bills') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Bills &amp; Invoices
+    </a>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#adminPaymentStatusModal">
+        <i class="bi bi-cash-coin me-1"></i> Update Payment Status
+      </button>
+      <button type="button" class="btn btn-primary btn-sm shadow-sm btn-print" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i> Print Invoice / Save as PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Printable Invoice Document -->
+  <div class="card dashboard-card invoice-card border p-4 p-md-5">
+    <!-- Header -->
+    <div class="row align-items-start pb-4 border-bottom mb-4">
+      <div class="col-sm-7">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-shield-shaded text-primary fs-3"></i>
+          <h3 class="fw-bold mb-0 text-dark">{{ settings.workshop_name }}</h3>
+        </div>
+        <div class="text-muted small">
+          <div>{{ settings.workshop_address }}</div>
+          <div><i class="bi bi-telephone me-1"></i>{{ settings.workshop_phone }} &bull; <i class="bi bi-envelope ms-1 me-1"></i>{{ settings.workshop_email }}</div>
+          {% if settings.workshop_gstin %}
+            <div class="mt-1"><strong>GSTIN / Tax ID:</strong> {{ settings.workshop_gstin }}</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-sm-5 text-sm-end mt-3 mt-sm-0">
+        <h4 class="text-uppercase fw-bold text-primary tracking-wide mb-1">TAX INVOICE</h4>
+        <div class="fw-bold font-monospace fs-5 text-dark">{{ bill.invoice_number }}</div>
+        <div class="text-muted small mt-1">Date: <strong>{{ bill.created_at|format_date }}</strong></div>
+        <div class="text-muted small">Booking Ref: <strong>{{ bill.booking_number }}</strong></div>
+        <div class="mt-2">
+          <span class="badge-status {{ bill.payment_status|status_badge }} px-3 py-1">
+            Status: {{ bill.payment_status }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer & Vehicle Info Section -->
+    <div class="row mb-4">
+      <div class="col-md-6 mb-3 mb-md-0">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <span class="text-uppercase text-muted fw-bold small d-block mb-2">Bill To (Customer Details)</span>
+          <h5 class="fw-bold text-dark mb-1">{{ bill.customer_name }}</h5>
+          <div class="small text-muted mb-1"><i class="bi bi-telephone me-1"></i>{{ bill.customer_phone }} &bull; <i class="bi bi-envelope ms-1 me-1"></i>{{ bill.customer_email }}</div>
+          <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ bill.customer_address|default('Registered Customer Address') }}</div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="p-3 bg-light rounded-3 border h-100">
+          <span class="text-uppercase text-muted fw-bold small d-block mb-2">Vehicle &amp; Service Bay Information</span>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h5 class="fw-bold text-dark mb-0">{{ bill.brand }} {{ bill.model }}</h5>
+            <span class="badge bg-dark font-monospace">{{ bill.registration_number }}</span>
+          </div>
+          <div class="small text-muted mb-1">
+            <span>{{ bill.vehicle_type }}</span> &bull; 
+            <span>{{ bill.fuel_type }}</span> &bull; 
+            <span>Odometer: {{ "{:,}".format(bill.current_km) }} km</span>
+          </div>
+          <div class="small text-dark pt-1 border-top mt-2">
+            <span>Service Package: <strong>{{ bill.service_name }}</strong></span>
+            {% if bill.mechanic_name %}
+              <div class="text-muted small">Assigned Technician: <strong>{{ bill.mechanic_name }}</strong></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Itemized Billing Table -->
+    <div class="table-responsive mb-4">
+      <table class="table table-bordered mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>Item / Description</th>
+            <th class="text-center" style="width: 100px;">Qty</th>
+            <th class="text-end" style="width: 140px;">Unit Price</th>
+            <th class="text-end" style="width: 150px;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Base Service Labor -->
+          <tr>
+            <td>1</td>
+            <td>
+              <div class="fw-bold text-dark">{{ bill.service_name }}</div>
+              <div class="text-muted small">{{ bill.service_description }}</div>
+            </td>
+            <td class="text-center">1</td>
+            <td class="text-end">{{ bill.service_charge|currency }}</td>
+            <td class="text-end fw-semibold">{{ bill.service_charge|currency }}</td>
+          </tr>
+
+          <!-- Additional Labor if any -->
+          {% if bill.additional_charge and bill.additional_charge > 0 %}
+          <tr>
+            <td>2</td>
+            <td>
+              <div class="fw-bold text-dark">Additional Inspection &amp; Bay Labor</div>
+              <div class="text-muted small">Diagnostic tests, system bleed, and adjustments</div>
+            </td>
+            <td class="text-center">1</td>
+            <td class="text-end">{{ bill.additional_charge|currency }}</td>
+            <td class="text-end fw-semibold">{{ bill.additional_charge|currency }}</td>
+          </tr>
+          {% endif %}
+
+          <!-- Itemized Spare Parts -->
+          {% for item in items %}
+          <tr>
+            <td>{{ loop.index + (2 if bill.additional_charge and bill.additional_charge > 0 else 1) }}</td>
+            <td>
+              <div class="fw-bold text-dark">{{ item.item_name }}</div>
+              {% if item.description %}
+                <div class="text-muted small">{{ item.description }}</div>
+              {% endif %}
+            </td>
+            <td class="text-center">{{ item.quantity }}</td>
+            <td class="text-end">{{ item.unit_price|currency }}</td>
+            <td class="text-end fw-semibold">{{ item.total|currency }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Totals and Calculations Section -->
+    <div class="row justify-content-end mb-4">
+      <div class="col-md-5">
+        <div class="table-responsive">
+          <table class="table table-sm table-borderless mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted">Labor Charges:</td>
+                <td class="text-end fw-medium">{{ (bill.service_charge + bill.additional_charge)|currency }}</td>
+              </tr>
+              {% if bill.parts_charge and bill.parts_charge > 0 %}
+              <tr>
+                <td class="text-muted">Parts &amp; Consumables:</td>
+                <td class="text-end fw-medium">{{ bill.parts_charge|currency }}</td>
+              </tr>
+              {% endif %}
+              <tr class="border-top">
+                <td class="fw-bold">Subtotal:</td>
+                <td class="text-end fw-bold">{{ bill.subtotal|currency }}</td>
+              </tr>
+              {% if bill.discount and bill.discount > 0 %}
+              <tr>
+                <td class="text-success">Discount Applied:</td>
+                <td class="text-end text-success fw-medium">- {{ bill.discount|currency }}</td>
+              </tr>
+              {% endif %}
+              <tr>
+                <td class="text-muted">GST / Sales Tax:</td>
+                <td class="text-end fw-medium">+ {{ bill.tax|currency }}</td>
+              </tr>
+              <tr class="border-top border-2 border-dark">
+                <td class="fs-5 fw-bold text-dark pt-2">Grand Total:</td>
+                <td class="fs-5 fw-bold text-primary text-end pt-2">{{ bill.grand_total|currency }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted small">Payment Mode:</td>
+                <td class="text-end small font-monospace">{{ bill.payment_method|default('Cash / UPI') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% if bill.notes %}
+    <div class="mb-4 p-3 bg-light rounded-3 small">
+      <strong>Technician / Invoice Notes:</strong>
+      <div class="text-muted mt-1">{{ bill.notes }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Footer Terms & Signatures -->
+    <div class="row pt-4 border-top mt-auto align-items-end">
+      <div class="col-8">
+        <h6 class="fw-bold small text-uppercase mb-1">Terms &amp; Warranty Conditions</h6>
+        <ul class="text-muted small ps-3 mb-0" style="font-size: 0.76rem;">
+          <li>All genuine spare parts carry standard manufacturer defect warranty.</li>
+          <li>Labor guaranteed for 30 days or 1,000 kilometers, whichever occurs first.</li>
+          <li>Vehicles left over 7 days after service completion incur storage fees.</li>
+        </ul>
+      </div>
+      <div class="col-4 text-center">
+        <div style="height: 45px;"></div>
+        <div class="border-top pt-1 small fw-bold text-dark">Authorized Signatory</div>
+        <div class="text-muted" style="font-size: 0.72rem;">{{ settings.workshop_name }}</div>
+      </div>
+    </div>
+
+    <div class="text-center text-muted small mt-4 pt-3 border-top" style="font-size: 0.8rem;">
+      Thank you for choosing {{ settings.workshop_name }}! Drive safely.
+    </div>
+  </div>
+</div>
+
+<!-- Admin Update Payment Modal -->
+<div class="modal fade" id="adminPaymentStatusModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.update_payment_status', bill_id=bill.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Update Payment: {{ bill.invoice_number }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Payment Status</label>
+            <select name="payment_status" class="form-select">
+              <option value="Paid" {% if bill.payment_status == 'Paid' %}selected{% endif %}>Paid (Full)</option>
+              <option value="Unpaid" {% if bill.payment_status == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+              <option value="Partial" {% if bill.payment_status == 'Partial' %}selected{% endif %}>Partial</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Payment Method</label>
+            <select name="payment_method" class="form-select">
+              <option value="Cash" {% if bill.payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+              <option value="UPI" {% if bill.payment_method == 'UPI' %}selected{% endif %}>UPI</option>
+              <option value="Card" {% if bill.payment_method == 'Card' %}selected{% endif %}>Card</option>
+              <option value="Net Banking" {% if bill.payment_method == 'Net Banking' %}selected{% endif %}>Net Banking</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

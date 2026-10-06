@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Assigned Services | {{ app_name }}{% endblock %}
+{% block page_title %}Assigned Vehicle Repairs{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h4 fw-bold mb-1">Assigned Services Log</h2>
+      <p class="text-muted small mb-0">Browse through all active and archived maintenance assignments.</p>
+    </div>
+  </div>
+
+  <!-- Filter Pills -->
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <a href="{{ url_for('mechanic.services', status='active') }}" class="btn btn-sm {% if current_filter == 'active' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      Active Queue
+    </a>
+    <a href="{{ url_for('mechanic.services', status='completed') }}" class="btn btn-sm {% if current_filter == 'completed' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      Completed Jobs
+    </a>
+    <a href="{{ url_for('mechanic.services', status='all') }}" class="btn btn-sm {% if current_filter == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      All Assignments
+    </a>
+  </div>
+
+  <div class="dashboard-card">
+    <div class="card-body p-0">
+      {% if bookings %}
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Customer</th>
+                <th>Vehicle Details</th>
+                <th>Service Name</th>
+                <th>Scheduled Date</th>
+                <th>Current Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in bookings %}
+                <tr>
+                  <td class="fw-bold font-monospace text-primary">{{ b.booking_number }}</td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ b.customer_name }}</div>
+                    <div class="text-muted small"><i class="bi bi-telephone me-1"></i>{{ b.customer_phone }}</div>
+                  </td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ b.brand }} {{ b.model }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ b.registration_number }} &bull; {{ b.fuel_type }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.service_name }}</div>
+                    <span class="text-muted small">Est: {{ b.estimated_duration }}</span>
+                  </td>
+                  <td>
+                    <div>{{ b.preferred_date|format_date }}</div>
+                    <span class="text-muted small">{{ b.preferred_time }}</span>
+                  </td>
+                  <td>
+                    <span class="badge-status {{ b.status|status_badge }}">{{ b.status }}</span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('mechanic.service_detail', booking_id=b.id) }}" class="btn btn-sm btn-outline-primary py-1 px-3">
+                      <i class="bi bi-wrench me-1"></i> Open Bay File
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><i class="bi bi-clipboard-x"></i></div>
+          <h5 class="empty-state-title">No service jobs found</h5>
+          <p class="empty-state-desc">No service records matched the selected filter.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

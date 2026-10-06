@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Booking {{ booking.booking_number }} | {{ app_name }}{% endblock %}
+{% block page_title %}Manage Booking: {{ booking.booking_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Top Navigation & Action Controls Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <div class="mb-1">
+        <a href="{{ url_for('admin.bookings') }}" class="text-decoration-none text-muted small">&larr; Back to Bookings Master</a>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <h2 class="h4 fw-bold mb-0 font-monospace text-primary">{{ booking.booking_number }}</h2>
+        <span class="badge-status {{ booking.status|status_badge }}">{{ booking.status }}</span>
+      </div>
+    </div>
+
+    <!-- Contextual Action Buttons -->
+    <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0">
+      {% if booking.status == 'Pending' %}
+        <form method="POST" action="{{ url_for('admin.approve_booking', booking_id=booking.id) }}" class="d-inline">
+          <input type="hidden" name="remarks" value="Booking approved by service manager. Scheduled for bay entry.">
+          <button type="submit" class="btn btn-success btn-sm shadow-sm">
+            <i class="bi bi-check-circle me-1"></i> Approve Booking
+          </button>
+        </form>
+      {% endif %}
+
+      <button type="button" class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#assignMechanicModal">
+        <i class="bi bi-person-plus me-1"></i> {% if booking.mechanic_id %}Reassign Mechanic{% else %}Assign Mechanic{% endif %}
+      </button>
+
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
+        <i class="bi bi-arrow-repeat me-1"></i> Change Status
+      </button>
+
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#rescheduleModal">
+        <i class="bi bi-calendar-event me-1"></i> Reschedule
+      </button>
+
+      {% if booking.bill_id %}
+        <a href="{{ url_for('admin.invoice', bill_id=booking.bill_id) }}" class="btn btn-dark btn-sm">
+          <i class="bi bi-receipt me-1"></i> View Invoice ({{ booking.invoice_number }})
+        </a>
+      {% elif booking.status in ['Completed', 'Delivered'] %}
+        <a href="{{ url_for('admin.generate_bill', booking_id=booking.id) }}" class="btn btn-success btn-sm shadow-sm">
+          <i class="bi bi-cash-coin me-1"></i> Generate Bill &amp; Invoice
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Vehicle & Service Details -->
+    <div class="col-lg-7">
+      <!-- Vehicle Information Card -->
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-car-front text-primary"></i>
+            <span>Vehicle Specifications</span>
+          </div>
+          <span class="badge bg-dark font-monospace">{{ booking.registration_number }}</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <span class="text-muted small d-block">Brand &amp; Model</span>
+              <strong class="text-dark">{{ booking.brand }} {{ booking.model }}</strong>
+            </div>
+            <div class="col-sm-6">
+              <span class="text-muted small d-block">Vehicle Type</span>
+              <strong class="text-dark">{{ booking.vehicle_type }}</strong>
+            </div>
+            <div class="col-sm-4">
+              <span class="text-muted small d-block">Fuel Type</span>
+              <strong class="text-dark">{{ booking.fuel_type }}</strong>
+            </div>
+            <div class="col-sm-4">
+              <span class="text-muted small d-block">Color</span>
+              <strong class="text-dark">{{ booking.color }}</strong>
+            </div>
+            <div class="col-sm-4">
+              <span class="text-muted small d-block">Current KM</span>
+              <strong class="text-dark">{{ "{:,}".format(booking.current_km) }} km</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service Package Details -->
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-wrench-adjustable text-primary"></i>
+            <span>Requested Service Package</span>
+          </div>
+          <span class="fw-bold text-primary">{{ booking.base_price|currency }}</span>
+        </div>
+        <div class="card-body">
+          <h5 class="fw-bold text-dark mb-1">{{ booking.service_name }}</h5>
+          <p class="text-muted small mb-3">{{ booking.service_description }}</p>
+          <div class="d-flex align-items-center gap-4 text-muted small pt-2 border-top">
+            <div><i class="bi bi-clock me-1 text-primary"></i> Estimated Time: <strong>{{ booking.estimated_duration }}</strong></div>
+            <div><i class="bi bi-calendar-event me-1 text-primary"></i> Slot: <strong>{{ booking.preferred_date|format_date }} ({{ booking.preferred_time }})</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Complaint & Notes -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-chat-left-dots text-primary"></i>
+            <span>Reported Problem &amp; Instructions</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <span class="text-muted small d-block mb-1 fw-semibold">Customer Problem Statement:</span>
+            <div class="text-dark fw-medium">{{ booking.complaint }}</div>
+          </div>
+          {% if booking.notes %}
+            <div class="text-muted small"><strong>Customer Note:</strong> {{ booking.notes }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Customer Info, Mechanic Allocation, & Updates Timeline -->
+    <div class="col-lg-5">
+      <!-- Customer Information Card -->
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person text-primary"></i>
+            <span>Customer Profile</span>
+          </div>
+          <a href="{{ url_for('admin.customer_detail', customer_id=booking.customer_id) }}" class="btn btn-sm btn-link text-decoration-none p-0">Full Profile &rarr;</a>
+        </div>
+        <div class="card-body">
+          <h6 class="fw-bold mb-1 text-dark">{{ booking.customer_name }}</h6>
+          <div class="small text-muted mb-1"><i class="bi bi-telephone text-primary me-1"></i>{{ booking.customer_phone }}</div>
+          <div class="small text-muted mb-1"><i class="bi bi-envelope text-primary me-1"></i>{{ booking.customer_email }}</div>
+          <div class="small text-muted"><i class="bi bi-geo-alt text-primary me-1"></i>{{ booking.customer_address|default('Registered Address') }}</div>
+        </div>
+      </div>
+
+      <!-- Assigned Mechanic Card -->
+      <div class="dashboard-card mb-4">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person-badge text-primary"></i>
+            <span>Assigned Technician</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if booking.mechanic_name %}
+            <div class="d-flex align-items-center gap-3">
+              <div class="user-avatar-sm" style="width: 44px; height: 44px;">
+                {{ booking.mechanic_name[:1]|upper }}
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="fw-bold mb-0 text-dark">{{ booking.mechanic_name }}</h6>
+                <div class="text-muted small">{{ booking.mechanic_specialization }}</div>
+                <div class="small text-primary mt-1"><i class="bi bi-telephone me-1"></i>{{ booking.mechanic_phone }}</div>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-2 text-muted small">
+              <i class="bi bi-exclamation-triangle text-warning fs-4 d-block mb-1"></i>
+              No mechanic has been assigned yet.
+              <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assignMechanicModal">
+                  Assign Mechanic Now
+                </button>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Timeline of Status Updates -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-activity text-primary"></i>
+            <span>Audit Trail &amp; Status Timeline</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if updates %}
+            <div class="service-timeline">
+              {% for u in updates %}
+                <div class="timeline-item">
+                  <div class="timeline-dot"><i class="bi bi-check2"></i></div>
+                  <div class="timeline-content">
+                    <div class="timeline-meta">
+                      <span class="badge-status {{ u.status|status_badge }}">{{ u.status }}</span>
+                      <span>{{ u.created_at|format_datetime }}</span>
+                    </div>
+                    <div class="small text-dark mt-1" style="white-space: pre-line;">{{ u.remarks }}</div>
+                    <div class="text-muted small mt-2 pt-1 border-top" style="font-size: 0.72rem;">
+                      <i class="bi bi-person me-1"></i>Logged by: <strong>{{ u.updated_by_name }}</strong> ({{ u.updated_by_role|capitalize }})
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-muted small text-center py-3">No updates recorded yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Mechanic Modal -->
+<div class="modal fade" id="assignMechanicModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.assign_mechanic', booking_id=booking.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="bi bi-person-plus text-primary me-2"></i>Assign Technician</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Select Workshop Mechanic <span class="text-danger">*</span></label>
+            <select name="mechanic_id" class="form-select" required>
+              <option value="" disabled {% if not booking.mechanic_id %}selected{% endif %}>-- Choose Available Mechanic --</option>
+              {% for m in mechanics %}
+                <option value="{{ m.id }}" {% if booking.mechanic_id == m.id %}selected{% endif %}>
+                  {{ m.name }} &bull; {{ m.specialization }} ({{ m.status }} - {{ m.current_jobs }} active jobs)
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-text small text-muted">Technicians marked 'Available' are prioritized.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Assignment Remarks / Instructions</label>
+            <textarea name="remarks" rows="2" class="form-control" placeholder="Specific technical checks or prioritized delivery request..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Confirm Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.update_booking_status', booking_id=booking.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="bi bi-arrow-repeat text-primary me-2"></i>Update Booking Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Target Service Status <span class="text-danger">*</span></label>
+            <select name="status" class="form-select" required>
+              <option value="Pending" {% if booking.status == 'Pending' %}selected{% endif %}>Pending</option>
+              <option value="Approved" {% if booking.status == 'Approved' %}selected{% endif %}>Approved</option>
+              <option value="Mechanic Assigned" {% if booking.status == 'Mechanic Assigned' %}selected{% endif %}>Mechanic Assigned</option>
+              <option value="Vehicle Received" {% if booking.status == 'Vehicle Received' %}selected{% endif %}>Vehicle Received</option>
+              <option value="In Service" {% if booking.status == 'In Service' %}selected{% endif %}>In Service</option>
+              <option value="Waiting for Parts" {% if booking.status == 'Waiting for Parts' %}selected{% endif %}>Waiting for Parts</option>
+              <option value="Completed" {% if booking.status == 'Completed' %}selected{% endif %}>Completed</option>
+              <option value="Delivered" {% if booking.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+              <option value="Cancelled" {% if booking.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Status Remarks <span class="text-danger">*</span></label>
+            <textarea name="remarks" rows="3" class="form-control" placeholder="Reason or details regarding this status change..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Update Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Reschedule Modal -->
+<div class="modal fade" id="rescheduleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.reschedule_booking', booking_id=booking.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="bi bi-calendar-event text-primary me-2"></i>Reschedule Slot</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">New Date <span class="text-danger">*</span></label>
+              <input type="date" name="preferred_date" class="form-control" value="{{ booking.preferred_date }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">New Slot <span class="text-danger">*</span></label>
+              <select name="preferred_time" class="form-select" required>
+                <option value="09:00 AM" {% if booking.preferred_time == '09:00 AM' %}selected{% endif %}>09:00 AM</option>
+                <option value="11:00 AM" {% if booking.preferred_time == '11:00 AM' %}selected{% endif %}>11:00 AM</option>
+                <option value="01:30 PM" {% if booking.preferred_time == '01:30 PM' %}selected{% endif %}>01:30 PM</option>
+                <option value="03:30 PM" {% if booking.preferred_time == '03:30 PM' %}selected{% endif %}>03:30 PM</option>
+                <option value="05:00 PM" {% if booking.preferred_time == '05:00 PM' %}selected{% endif %}>05:00 PM</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Reason for Rescheduling</label>
+              <textarea name="remarks" rows="2" class="form-control" placeholder="Bay congestion / customer requested new slot"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Reschedule Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}MySQL Database Connection Error | {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card dashboard-card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white py-3">
+          <div class="d-flex align-items-center gap-2 fs-5 fw-bold">
+            <i class="bi bi-database-fill-slash"></i>
+            <span>MySQL Database Connection Required</span>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="alert alert-danger mb-4">
+            <strong>Database Error:</strong> {{ error_msg }}
+          </div>
+
+          <h5 class="fw-bold text-dark mb-2">How to Connect Your MySQL Database:</h5>
+          <ol class="small text-muted mb-4 ps-3 vstack gap-2">
+            <li>
+              <strong>Start MySQL Server:</strong> Launch MySQL via <em>MySQL Workbench</em>, <em>XAMPP Control Panel</em>, <em>WampServer</em>, or Windows Services (<code>net start mysql</code>).
+            </li>
+            <li>
+              <strong>Verify Credentials in <code>.env</code>:</strong> Ensure your MySQL username and password in the <code>.env</code> file match your local server:
+              <pre class="bg-dark text-white p-2 rounded mt-1 font-monospace">DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=vehicle_service_management</pre>
+            </li>
+            <li>
+              <strong>Initialize Database &amp; Seed Data:</strong> Run the automated initializer script from your project terminal:
+              <pre class="bg-dark text-white p-2 rounded mt-1 font-monospace">python init_db.py</pre>
+              <em>Or open MySQL Workbench and run <code>database/schema.sql</code>.</em>
+            </li>
+          </ol>
+
+          <div class="text-center pt-3 border-top">
+            <a href="/" class="btn btn-primary btn-sm px-4">
+              <i class="bi bi-arrow-clockwise me-1"></i> Retry Connection
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
